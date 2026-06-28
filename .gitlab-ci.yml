@@ -21,7 +21,7 @@ build_plugin:
     name: "Flasetclass-Plugin"
     paths:
       - bin/Release/net48/Flasetclass.dll
-    expire_in: 1 week
+    expire_in: 1 day
 
 publish_release:
   stage: release
