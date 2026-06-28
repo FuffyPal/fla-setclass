@@ -371,7 +371,7 @@ namespace Flasetclass.Commands
                 }
             },
             {
-                "tesis-görevlisis", new UnitProfile
+                "tesis-görevlisi", new UnitProfile
                 {
                     Tag = "Tesis Görevlisi",
                     Info = "Nefer",
