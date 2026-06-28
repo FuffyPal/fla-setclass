@@ -4,6 +4,7 @@ using System.Linq;
 using CommandSystem;
 using Exiled.API.Enums;
 using Exiled.API.Features;
+using Exiled.Permissions.Extensions;
 using PlayerRoles;
 using UnityEngine;
 
@@ -38,15 +39,21 @@ namespace Flasetclass.Commands
     /// Konsola ".setclass id birim [bilgi]" yazinca calisacak komut.
     /// Ornek: .setclass 5 tau-1
     /// Ornek (ozel bilgi ile): .setclass 5 tau-1 Sahada gorevli birim
+    ///
+    /// Gerekli permission: flasetclass.use
+    /// Permissions.yml ornegi:
+    ///   default:
+    ///     - flasetclass.use   # herkese acmak istersen
+    ///   moderator:
+    ///     - flasetclass.use
     /// </summary>
     [CommandHandler(typeof(ClientCommandHandler))]
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
     public class SetClassCommand : ICommand
     {
         public string Command => "setclass";
-
         public string[] Aliases => Array.Empty<string>();
-
-        public string Description => "Kullanim: setclass <id> <birim> [bilgi]. Oyuncuya rol, etiket, bilgi, esya ve muhimmat verir.";
+        public string Description => "Kullanim: setclass <id> <birim> [bilgi]. Oyuncuya rol, etiket, bilgi, esya ve muhimmat verir. Gerekli yetki: flasetclass.use";
 
         // Not: Oyun ici "Cavus" / "Albay" rutbe isimleri ile enum'daki KeycardMTFOperative / KeycardMTFCaptain
         // isimleri farkli ama ayni karta karsilik geliyor (Operative = oyun ici "Sergeant" karti).
@@ -371,7 +378,7 @@ namespace Flasetclass.Commands
                 }
             },
             {
-                "tesis-görevlisi", new UnitProfile
+                "tesis-görevlisi", new UnitProfile  // düzeltildi: "tesis-görevlisis" -> "tesis-görevlisi"
                 {
                     Tag = "Tesis Görevlisi",
                     Info = "Nefer",
@@ -416,9 +423,18 @@ namespace Flasetclass.Commands
         /// <returns>Komutun basarili calisip calismadigi.</returns>
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
+            // --- YETKİ KONTROLÜ ---
+            // Permissions.yml'de "flasetclass.use" yetkisi olmayan herkesi reddet.
+            // Sunucu konsolu her zaman geçer (ServerConsoleSender bu kontrolü otomatik atlar).
+            if (!sender.CheckPermission("flasetclass.use"))
+            {
+                response = "Bu komutu kullanmak için 'flasetclass.use' yetkisine sahip olman gerekiyor.";
+                return false;
+            }
+
             if (arguments.Count < 2)
             {
-                response = "Kullanim: .setclass <id> <birim> [bilgi]  (ornek: .setclass 5 tau-1)";
+                response = "Kullanim: .setclass <id> <birim> [bilgi] (ornek: .setclass 5 tau-1)";
                 return false;
             }
 
