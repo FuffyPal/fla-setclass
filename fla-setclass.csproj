@@ -11,6 +11,22 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
     <PackageReference Include="ExMod.Exiled" Version="9.14.2" />
+    <Reference Include="Assembly-CSharp">
+      <HintPath>/home/flaouve/.steam/steam/steamapps/common/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Mirror">
+      <HintPath>/home/flaouve/.steam/steam/steamapps/common/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed/Mirror.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>/home/flaouve/.steam/steam/steamapps/common/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>/home/flaouve/.steam/steam/steamapps/common/SCP Secret Laboratory Dedicated Server/SCPSL_Data/Managed/UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>
