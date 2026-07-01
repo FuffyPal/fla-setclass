@@ -424,34 +424,23 @@ namespace Flasetclass.Commands
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             // --- YETKİ KONTROLÜ ---
-            // Permissions.yml'de "flasetclass.use" yetkisi olmayan herkesi reddet.
-            // Sunucu konsolu her zaman geçer (ServerConsoleSender bu kontrolü otomatik atlar).
             if (!sender.CheckPermission("flasetclass.use"))
             {
                 response = "Bu komutu kullanmak için 'flasetclass.use' yetkisine sahip olman gerekiyor.";
                 return false;
             }
 
+            // En az 2 arguman gerekiyor: en az 1 ID + birim ismi.
+            // Yeni format: .setclass <id1> [id2] [id3] ... <birim>
+            // Son arguman HER ZAMAN birim ismidir, oncekiler ID'lerdir.
             if (arguments.Count < 2)
             {
-                response = "Kullanim: .setclass <id> <birim> [bilgi] (ornek: .setclass 5 tau-1)";
+                response = "Kullanim: .setclass <id1> [id2 id3 ...] <birim>  (ornek: .setclass 2 3 5 tau-1)";
                 return false;
             }
 
-            string idArgument = arguments.At(0);
-            string unitArgument = arguments.At(1);
-
-            if (!int.TryParse(idArgument, out int playerId))
-            {
-                response = $"'{idArgument}' gecerli bir oyuncu ID'si degil.";
-                return false;
-            }
-
-            if (!Player.TryGet(playerId, out Player target))
-            {
-                response = $"ID {playerId} ile bir oyuncu bulunamadi.";
-                return false;
-            }
+            // Son arguman = birim ismi.
+            string unitArgument = arguments.At(arguments.Count - 1);
 
             if (!Units.TryGetValue(unitArgument, out UnitProfile profile))
             {
@@ -459,38 +448,73 @@ namespace Flasetclass.Commands
                 return false;
             }
 
-            string infoArgument = arguments.Count > 2
-                ? string.Join(" ", arguments.Skip(2))
-                : null;
+            // Birimd ismi haric kalan tum argumanlari ID olarak isle.
+            List<string> idArguments = arguments.Take(arguments.Count - 1).ToList();
 
-            // Rol degisiminden ONCE konumu kaydet, cunku Role.Set oyuncuyu spawn noktasina tasiyor.
+            List<string> successLines = new List<string>();
+            List<string> failLines = new List<string>();
+
+            foreach (string idStr in idArguments)
+            {
+                // Her ID'yi ayri ayri kontrol et; biri gecersizse digerlerini atlamadan devam et.
+                if (!int.TryParse(idStr, out int playerId))
+                {
+                    failLines.Add($"'{idStr}' gecerli bir ID degil.");
+                    continue;
+                }
+
+                if (!Player.TryGet(playerId, out Player target))
+                {
+                    failLines.Add($"ID {playerId} bulunamadi.");
+                    continue;
+                }
+
+                ApplyProfile(target, profile);
+                successLines.Add($"{target.Nickname} (ID: {playerId})");
+            }
+
+            // Sonuc ozeti olustur.
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
+            if (successLines.Count > 0)
+                sb.AppendLine($"[OK] '{unitArgument}' atandi: {string.Join(", ", successLines)}");
+
+            if (failLines.Count > 0)
+                sb.AppendLine($"[HATA] {string.Join(" | ", failLines)}");
+
+            response = sb.ToString().TrimEnd();
+            return successLines.Count > 0;
+        }
+
+        /// <summary>
+        /// Tek bir oyuncuya profili uygular: rol, konum koruma, isim, bilgi, envanter, muhimmat.
+        /// Birden fazla ID destegi icin ayri bir metoda cikartildi, boylece her ID icin tekrarlanabilir.
+        /// </summary>
+        private static void ApplyProfile(Player target, UnitProfile profile)
+        {
+            // Rol degisiminden ONCE konumu kaydet.
             Vector3 originalPosition = target.Position;
 
-            // 1) Oyuncunun GERCEK rolunu degistir (asker, D-Class, bilim insani vs).
+            // 1) Gercek oyun rolunu degistir.
             target.Role.Set(profile.Role);
 
-            // 2) Oyuncuyu rol degismeden once bulundugu konuma geri tasi (spawn noktasina gitmesin).
+            // 2) Spawn noktasina gitmemesi icin eski konuma geri don.
             target.Position = originalPosition;
 
             // 3) Ismin basina etiket ekle.
             target.CustomName = $"{profile.Tag} {target.Nickname}";
 
-            // 4) CustomInfo: admin elle yazdiysa onu kullan, yazmadiysa birimin varsayilanini kullan.
-            string infoToApply = !string.IsNullOrEmpty(infoArgument) ? infoArgument : profile.Info;
-            if (!string.IsNullOrEmpty(infoToApply))
-                target.CustomInfo = infoToApply;
+            // 4) CustomInfo yaz.
+            if (!string.IsNullOrEmpty(profile.Info))
+                target.CustomInfo = profile.Info;
 
-            // 5) Envanteri tek seferde sifirla ve sadece bizim verdigimiz esyalari koy.
+            // 5) Envanteri sifirla ve yeni esyalari ver.
             target.ResetInventory(profile.Items);
 
-            // 6) Muhimmati ayrica ver (mühimmat envanter slotu kullanmiyor, ayri bir havuzda tutuluyor).
+            // 6) Muhimmati ayrica ver.
             target.ClearAmmo();
             foreach (KeyValuePair<AmmoType, ushort> ammoEntry in profile.Ammo)
                 target.SetAmmo(ammoEntry.Key, ammoEntry.Value);
-
-            string itemsList = string.Join(", ", profile.Items.Select(i => i.ToString()));
-            response = $"{target.Nickname} (ID: {playerId}) artik '{target.CustomName}' ({profile.Role}) oldu. Bilgi: '{infoToApply}'. Esyalar: {itemsList}";
-            return true;
         }
     }
 }
